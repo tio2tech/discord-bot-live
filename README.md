@@ -15,6 +15,9 @@ Tio₂ Live Discord Bridge: a secure web chat widget that streams a Discord chan
 1. Add the environment variables above in the Vercel project settings.
 2. Deploy the Next.js app.
 3. Embed the widget from `/public/embed/widget.html` or copy its HTML into your site.
+[![Deploy with Vercel](https://vercel.com/button)](
+https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/vercel-discord-webhook-proxy
+)
 
 ### Local testing
 - Start the Next.js dev server and use curl:

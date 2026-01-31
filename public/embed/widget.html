@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Website Message Bot</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Inter", system-ui, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        padding: 32px;
+        background: #0f1115;
+        color: #eef1f6;
+      }
+
+      .widget {
+        max-width: 420px;
+        padding: 20px;
+        border-radius: 16px;
+        background: #1b1f2a;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+      }
+
+      .widget h2 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+
+      .widget p {
+        margin: 0 0 16px;
+        color: #a5b0c4;
+        font-size: 14px;
+      }
+
+      .field {
+        display: flex;
+        gap: 8px;
+      }
+
+      .field input {
+        flex: 1;
+        border-radius: 12px;
+        border: 1px solid #2c3344;
+        background: #0f1115;
+        color: inherit;
+        padding: 12px 14px;
+        font-size: 14px;
+      }
+
+      .field button {
+        border: none;
+        border-radius: 12px;
+        background: #4c6fff;
+        color: white;
+        padding: 12px 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s ease;
+      }
+
+      .field button[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .status {
+        margin-top: 12px;
+        font-size: 13px;
+      }
+
+      .status.error {
+        color: #ff7b7b;
+      }
+
+      .status.success {
+        color: #63f5a5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="widget">
+      <h2>Send a message</h2>
+      <p>Share a quick note with our community. Keep it short and friendly.</p>
+      <div class="field">
+        <input id="messageInput" type="text" maxlength="1800" placeholder="Your message" />
+        <button id="sendButton" type="button">Send</button>
+      </div>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+    </div>
+
+    <script>
+      const CONFIG = {
+        PROXY_URL: "/api/webhook-proxy",
+        BOT_NAME: "Website Bot",
+        AVATAR_URL: "",
+        RATE_LIMIT_MS: 1500,
+      };
+
+      const input = document.getElementById("messageInput");
+      const sendButton = document.getElementById("sendButton");
+      const status = document.getElementById("status");
+
+      let lastSentAt = 0;
+
+      const setStatus = (message, type) => {
+        status.textContent = message;
+        status.className = `status ${type || ""}`.trim();
+      };
+
+      const setSending = (sending) => {
+        sendButton.disabled = sending;
+        sendButton.textContent = sending ? "Sending…" : "Send";
+      };
+
+      const sendMessage = async () => {
+        const now = Date.now();
+        if (now - lastSentAt < CONFIG.RATE_LIMIT_MS) {
+          setStatus("Please wait a moment before sending again.", "error");
+          return;
+        }
+
+        const content = input.value.trim();
+        if (!content) {
+          setStatus("Please enter a message first.", "error");
+          return;
+        }
+
+        setSending(true);
+        setStatus("");
+
+        try {
+          const response = await fetch(CONFIG.PROXY_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              content,
+              username: CONFIG.BOT_NAME,
+              avatarUrl: CONFIG.AVATAR_URL || undefined,
+            }),
+          });
+
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            const message = data.error || "Something went wrong.";
+            setStatus(message, "error");
+            return;
+          }
+
+          lastSentAt = now;
+          input.value = "";
+          setStatus("Message sent!", "success");
+        } catch (error) {
+          setStatus("Network error. Please try again.", "error");
+        } finally {
+          setSending(false);
+        }
+      };
+
+      sendButton.addEventListener("click", () => {
+        void sendMessage();
+      });
+
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          void sendMessage();
+        }
+      });
+    </script>
+  </body>
+</html>
